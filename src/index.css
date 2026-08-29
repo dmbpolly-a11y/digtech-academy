@@ -503,6 +503,37 @@
   transform-style: preserve-3d;
 }
 
+/* ─── Mobile: Disable animations that cause overflow/shaking ────────────── */
+@media (max-width: 767px) {
+  .section-zoom-animate {
+    animation: none !important;
+  }
+
+  .section-flip-animate {
+    animation: none !important;
+  }
+
+  .card-flip-hover:hover {
+    transform: none !important;
+  }
+
+  .click-zoom:active {
+    animation: none !important;
+  }
+
+  .contact-box-animated {
+    animation: none !important;
+  }
+
+  .hover-lift:hover {
+    transform: none !important;
+  }
+
+  .image-with-blue-border:hover {
+    transform: none !important;
+  }
+}
+
 .card-flip-hover {
   transition: transform 0.6s ease-in-out;
   transform-style: preserve-3d;
@@ -583,7 +614,13 @@
   animation: slideInFromBottom 0.7s ease-in-out;
 }
 
-* {
+/* NOTE: Removed global * { transition-timing-function } rule.
+   It was causing the Landbot chatbot widget to shake/jitter.
+   Transitions are now scoped to interactive elements only. */
+a, button, input, select, textarea,
+.hover-lift, .footer-social-icon, .footer-link,
+.card-hover, .image-with-blue-border, .blue-accent-overlay::before,
+.auth-input, .auth-button, .blue-btn-gradient-hover {
   transition-timing-function: ease-in-out;
 }
 
@@ -597,4 +634,21 @@ body {
   font-family: 'Poppins', sans-serif;
   background: #ffffff;
   color: #1F2937;
+  overflow-x: hidden;
+}
+
+/* ─── Landbot Chatbot: Prevent shaking/jittering ─────────────────────────── */
+[class*="landbot"],
+[class*="Landbot"],
+[class*="LandbotLivechat"],
+iframe[src*="landbot"],
+.landbot-container__button,
+#landbot-button {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Allow only opacity transition on landbot for smooth open/close */
+[class*="LandbotLivechat"] > div {
+  transition: opacity 0.3s ease !important;
 }
