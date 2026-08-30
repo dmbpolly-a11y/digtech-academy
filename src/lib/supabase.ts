@@ -148,6 +148,42 @@ export const db = {
     },
   },
 
+  // Testimonials
+  testimonials: {
+    getAll: async () => {
+      const { data, error } = await supabase
+        .from('testimonials')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+      return { data, error }
+    },
+    create: async (testimonialData: any) => {
+      const { data, error } = await supabase
+        .from('testimonials')
+        .insert([testimonialData])
+        .select()
+        .single()
+      return { data, error }
+    },
+    update: async (id: number, testimonialData: any) => {
+      const { data, error } = await supabase
+        .from('testimonials')
+        .update(testimonialData)
+        .eq('id', id)
+        .select()
+        .single()
+      return { data, error }
+    },
+    delete: async (id: number) => {
+      const { error } = await supabase
+        .from('testimonials')
+        .delete()
+        .eq('id', id)
+      return { error }
+    }
+  },
+
   // Visit Statistics
   visitStats: {
     track: async (visitorData: any) => {

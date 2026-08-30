@@ -257,6 +257,21 @@ CREATE TABLE IF NOT EXISTS website_content (
 );
 
 -- ============================================================================
+-- 13.5. TESTIMONIALS (Success Stories)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS testimonials (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  role TEXT DEFAULT 'Academy Graduate',
+  text TEXT NOT NULL,
+  avatar TEXT DEFAULT '/images/liveclass1.png',
+  rating SMALLINT DEFAULT 5 CHECK (rating >= 1 AND rating <= 5),
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================================
 -- 14. PRINCIPAL COMMENTS
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS principal_comments (
@@ -363,6 +378,20 @@ CREATE POLICY "Students can view live links for enrolled courses" ON media_links
 -- Students can view their enrollments
 CREATE POLICY "Students can view own enrollments" ON enrollments
   FOR SELECT USING (student_id = auth.uid());
+
+-- Public can view website content
+CREATE POLICY "Public can view website content" ON website_content
+  FOR SELECT USING (true);
+
+-- Testimonials Policies
+ALTER TABLE testimonials ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public can view active testimonials" ON testimonials
+  FOR SELECT USING (is_active = true);
+
+CREATE POLICY "Admins can manage testimonials" ON testimonials
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'admin')
+  );
 
 -- Public can track visits
 CREATE POLICY "Anyone can insert visit stats" ON visit_stats

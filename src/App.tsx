@@ -2863,25 +2863,42 @@ function AdminDashboard({
     loadStats()
   }, [])
 
-  const handleAddStory = (e: React.FormEvent) => {
+  const handleAddStory = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newStoryName || !newStoryText) return
-    const newStory: SuccessStory = {
-      id: Date.now(),
+    const newStoryData = {
       name: newStoryName,
       role: newStoryRole || 'Academy Graduate',
       text: newStoryText,
       avatar: '/images/liveclass1.png',
       rating: 5,
+      is_active: true
     }
-    setTestimonials([newStory, ...testimonials])
-    setNewStoryName('')
-    setNewStoryRole('')
-    setNewStoryText('')
+    
+    try {
+      const { data, error } = await db.testimonials.create(newStoryData)
+      if (data && !error) {
+        setTestimonials([data, ...testimonials])
+        setNewStoryName('')
+        setNewStoryRole('')
+        setNewStoryText('')
+      }
+    } catch (err) {
+      console.error('Failed to create testimonial', err)
+      alert('Failed to save success story.')
+    }
   }
 
-  const handleDeleteStory = (id: number) => {
-    setTestimonials(testimonials.filter((t) => t.id !== id))
+  const handleDeleteStory = async (id: number) => {
+    try {
+      const { error } = await db.testimonials.delete(id)
+      if (!error) {
+        setTestimonials(testimonials.filter((t) => t.id !== id))
+      }
+    } catch (err) {
+      console.error('Failed to delete testimonial', err)
+      alert('Failed to delete success story.')
+    }
   }
 
   return (
@@ -5599,6 +5616,21 @@ export default function App() {
   const [admins, setAdmins] = useState<AdminUser[]>(INITIAL_ADMINS)
   const [showEnrollmentForm, setShowEnrollmentForm] = useState(false)
   const [selectedCourseForEnrollment, setSelectedCourseForEnrollment] = useState<{ id: number; title: string } | undefined>(undefined)
+
+  // Fetch testimonials from Supabase on load
+  useEffect(() => {
+    const fetchTestimonials = async () => {
+      try {
+        const { data } = await db.testimonials.getAll()
+        if (data && data.length > 0) {
+          setTestimonials(data)
+        }
+      } catch (err) {
+        console.warn('Failed to load testimonials, using fallback', err)
+      }
+    }
+    fetchTestimonials()
+  }, [])
 
   // Scroll to top whenever frame changes
   useEffect(() => {
