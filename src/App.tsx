@@ -91,6 +91,7 @@ type Frame =
   | 'principal-dashboard'
   | 'live-courses'
   | 'lesson-player'
+  | 'exam-player'
   | 'about'
   | 'contact'
   | 'faq'
@@ -3059,7 +3060,36 @@ function PrincipalDashboard({
   admins: AdminUser[]
   setAdmins: React.Dispatch<React.SetStateAction<AdminUser[]>>
 }) {
-  const [tab, setTab] = useState<'admins' | 'tutors' | 'certs' | 'profile'>('admins')
+  const [tab, setTab] = useState<'admins' | 'tutors' | 'certs' | 'comments' | 'profile'>('admins')
+  const [comments, setComments] = useState<any[]>([])
+  const [newComment, setNewComment] = useState('')
+
+  useEffect(() => {
+    if (tab === 'comments') {
+      loadComments()
+    }
+  }, [tab])
+
+  const loadComments = async () => {
+    const { data } = await db.principalComments.getAll()
+    if (data) setComments(data)
+  }
+
+  const handleAddComment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newComment.trim()) return
+    const { data: userData } = await auth.getUser()
+    if (!userData?.user) return
+    await db.principalComments.create({ comment: newComment, created_by: userData.user.id, target_type: 'general' })
+    setNewComment('')
+    loadComments()
+  }
+
+  const handleDeleteComment = async (id: number) => {
+    if (!confirm('Delete comment?')) return
+    await db.principalComments.delete(id)
+    loadComments()
+  }
   
   // Profile & Photo Upload state for principal
   const [principalProfileImage, setPrincipalProfileImage] = useState('/images/liveclass2.png')
@@ -3263,6 +3293,28 @@ function PrincipalDashboard({
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'comments' && (
+          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+            <h2 className="text-base font-bold text-gray-900 mb-4">Principal Directives & Comments</h2>
+            <form onSubmit={handleAddComment} className="mb-6 flex gap-2">
+              <input type="text" value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Add a new directive..." className="flex-1 p-3 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1A4095]" />
+              <button type="submit" className="px-6 py-3 bg-[#1A4095] text-white rounded-xl font-bold hover:opacity-90">Post</button>
+            </form>
+            <div className="space-y-4">
+              {comments.map((c: any) => (
+                <div key={c.id} className="p-4 border border-gray-200 rounded-xl flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">{c.comment}</p>
+                    <p className="text-xs text-gray-500 mt-1">{new Date(c.created_at).toLocaleString()}</p>
+                  </div>
+                  <button onClick={() => handleDeleteComment(c.id)} className="text-red-500 hover:text-red-700"><Icon icon="lucide:trash-2" className="w-4 h-4" /></button>
+                </div>
+              ))}
+              {comments.length === 0 && <p className="text-sm text-gray-500 text-center py-4">No comments posted.</p>}
             </div>
           </div>
         )}
@@ -3598,7 +3650,44 @@ function UserProfile() {
   )
 }
 
-function StudentDashboard() {
+function StudentDashboard({ setFrame, setSelectedExamId }: { setFrame: (f: Frame) => void, setSelectedExamId: (id: number) => void }) {
+  const [activeTab, setActiveTab] = useState<'courses' | 'exams' | 'links'>('courses')
+  const [enrollments, setEnrollments] = useState<any[]>([])
+  const [liveLinks, setLiveLinks] = useState<any[]>([])
+  const [exams, setExams] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    try {
+      const { user } = await auth.getUser()
+      if (!user) return
+
+      // Load Enrollments
+      const { data: enrolls } = await db.enrollments.getByStudent(user.id)
+      setEnrollments(enrolls || [])
+
+      if (enrolls && enrolls.length > 0) {
+        const courseIds = enrolls.map((e: any) => e.course_id)
+        
+        // Load Live Links
+        const { data: links } = await db.liveLinks.getAll()
+        setLiveLinks(links?.filter((l: any) => courseIds.includes(l.course_id)) || [])
+
+        // Load Exams
+        const { data: exms } = await db.exams.getAll()
+        setExams(exms?.filter((e: any) => courseIds.includes(e.course_id)) || [])
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
       <h1 className="text-2xl font-extrabold text-gray-900 mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
@@ -3607,36 +3696,91 @@ function StudentDashboard() {
       <p className="text-xs text-gray-500 mb-8">Access your enrolled courses and manage your profile</p>
       
       <div className="grid md:grid-cols-3 gap-8">
-        {/* User Profile */}
         <div className="md:col-span-1">
           <UserProfile />
         </div>
 
-        {/* Enrolled Courses */}
         <div className="md:col-span-2 space-y-6">
-          <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-              My Enrolled Courses
-            </h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <CourseCard course={INITIAL_COURSES[0]} onClick={() => {}} onEnroll={() => {}} />
-              <CourseCard course={INITIAL_COURSES[1]} onClick={() => {}} onEnroll={() => {}} />
-            </div>
-          </div>
-
-          {/* Certificates */}
-          <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-4" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-              My Certificates
-            </h2>
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between">
-              <div>
-                <div className="text-xs font-bold text-gray-900">Python for Data Science</div>
-                <div className="text-[11px] text-gray-500">Issued: Jan 15, 2024 • Expires: Never</div>
-              </div>
-              <button className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#1A4095] text-white hover:opacity-90">
-                View Certificate
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex border-b border-gray-100">
+              <button 
+                onClick={() => setActiveTab('courses')}
+                className={`flex-1 py-4 text-xs font-bold uppercase tracking-wider ${activeTab === 'courses' ? 'text-[#1A4095] border-b-2 border-[#1A4095]' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                My Courses
               </button>
+              <button 
+                onClick={() => setActiveTab('links')}
+                className={`flex-1 py-4 text-xs font-bold uppercase tracking-wider ${activeTab === 'links' ? 'text-[#1A4095] border-b-2 border-[#1A4095]' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Live Classes
+              </button>
+              <button 
+                onClick={() => setActiveTab('exams')}
+                className={`flex-1 py-4 text-xs font-bold uppercase tracking-wider ${activeTab === 'exams' ? 'text-[#1A4095] border-b-2 border-[#1A4095]' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Exams
+              </button>
+            </div>
+
+            <div className="p-6">
+              {loading ? (
+                <div className="text-center py-8 text-gray-500 text-sm">Loading...</div>
+              ) : activeTab === 'courses' ? (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {enrollments.length > 0 ? enrollments.map((enrollment: any) => (
+                    <div key={enrollment.id} className="border border-gray-200 p-4 rounded-xl">
+                      <h3 className="font-bold text-gray-900 mb-1">{enrollment.courses?.title || 'Course'}</h3>
+                      <p className="text-xs text-gray-500 mb-3">Status: {enrollment.status}</p>
+                      <button 
+                        onClick={() => {}} 
+                        className="w-full text-center text-xs font-bold py-2 bg-[#1A4095] text-white rounded-lg hover:opacity-90"
+                      >
+                        Continue Learning
+                      </button>
+                    </div>
+                  )) : (
+                    <div className="col-span-2 text-center py-8 text-gray-500 text-sm">No courses enrolled yet.</div>
+                  )}
+                </div>
+              ) : activeTab === 'links' ? (
+                <div className="space-y-4">
+                  {liveLinks.length > 0 ? liveLinks.map((link: any) => (
+                    <div key={link.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-xl">
+                      <div>
+                        <h4 className="font-bold text-gray-900 text-sm">{link.title}</h4>
+                        <p className="text-xs text-gray-500">{link.courses?.title}</p>
+                        <p className="text-[11px] text-[#28C0F4] mt-1">{link.link_type} • {link.scheduled_at ? new Date(link.scheduled_at).toLocaleString() : 'Always open'}</p>
+                      </div>
+                      <a href={link.url} target="_blank" rel="noreferrer" className="text-xs font-bold px-4 py-2 bg-[#28C0F4] text-white rounded-lg hover:bg-opacity-90">
+                        Join Class
+                      </a>
+                    </div>
+                  )) : (
+                    <div className="text-center py-8 text-gray-500 text-sm">No active live classes.</div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {exams.length > 0 ? exams.map((exam: any) => (
+                    <div key={exam.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-xl">
+                      <div>
+                        <h4 className="font-bold text-gray-900 text-sm">{exam.title}</h4>
+                        <p className="text-xs text-gray-500">{exam.courses?.title}</p>
+                        <p className="text-[11px] text-gray-500 mt-1">{exam.duration_minutes} mins • {exam.total_marks} Marks</p>
+                      </div>
+                      <button 
+                        onClick={() => { setSelectedExamId(exam.id); setFrame('exam-player'); }}
+                        className="text-xs font-bold px-4 py-2 bg-[#1A4095] text-white rounded-lg hover:opacity-90"
+                      >
+                        Take Exam
+                      </button>
+                    </div>
+                  )) : (
+                    <div className="text-center py-8 text-gray-500 text-sm">No exams available.</div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -3644,6 +3788,199 @@ function StudentDashboard() {
     </div>
   )
 }
+
+function ExamPlayer({ examId, setFrame }: { examId: number, setFrame: (f: Frame) => void }) {
+  const [exam, setExam] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [answers, setAnswers] = useState<Record<string, any>>({})
+  const [timeLeft, setTimeLeft] = useState<number>(0)
+  const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    loadExam()
+  }, [examId])
+
+  useEffect(() => {
+    if (timeLeft > 0 && !submitted) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000)
+      return () => clearTimeout(timer)
+    } else if (timeLeft === 0 && exam && !submitted) {
+      handleSubmit()
+    }
+  }, [timeLeft, submitted, exam])
+
+  const loadExam = async () => {
+    try {
+      const { user } = await auth.getUser()
+      if (!user) return setFrame('login')
+
+      // Check if already submitted
+      const { data: previousMarks } = await db.marks.getByStudent(user.id)
+      const alreadyTaken = previousMarks?.find((m: any) => m.exam_id === examId)
+      if (alreadyTaken) {
+        setSubmitted(true)
+        setError('You have already taken this exam.')
+      }
+
+      const { data: examsData } = await db.exams.getAll()
+      const currentExam = examsData?.find((e: any) => e.id === examId)
+      if (currentExam) {
+        setExam(currentExam)
+        setTimeLeft(currentExam.duration_minutes * 60)
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAnswerChange = (questionId: string, val: any) => {
+    setAnswers({ ...answers, [questionId]: val })
+  }
+
+  const handleSubmit = async () => {
+    setSubmitting(true)
+    try {
+      const { user } = await auth.getUser()
+      if (!user) return
+
+      let marksObtained = 0
+      exam.questions?.forEach((q: any) => {
+        if (q.type === 'mcq' || q.type === 'true-false') {
+          if (answers[q.id] === q.correct_answer) {
+            marksObtained += q.marks || 1
+          }
+        }
+      })
+
+      const grade = marksObtained >= exam.passing_marks ? 'Pass' : 'Fail'
+
+      await db.marks.create({
+        exam_id: exam.id,
+        student_id: user.id,
+        answers: answers,
+        marks_obtained: marksObtained,
+        grade: grade
+      })
+      
+      setSubmitted(true)
+      setError('')
+    } catch (err: any) {
+      console.error(err)
+      setError('Failed to submit exam: ' + err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading) return <div className="p-12 text-center">Loading Exam...</div>
+
+  if (submitted) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-24 text-center">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Icon icon="lucide:check" className="w-8 h-8 text-green-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Exam Completed</h2>
+        <p className="text-gray-500 mb-8">{error || 'Your answers have been successfully submitted.'}</p>
+        <button onClick={() => setFrame('student-dashboard')} className="px-6 py-3 bg-[#1A4095] text-white rounded-xl font-bold hover:bg-opacity-90">
+          Back to Dashboard
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-4 z-10">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">{exam?.title}</h1>
+          <p className="text-sm text-gray-500">{exam?.courses?.title}</p>
+        </div>
+        <div className="text-right">
+          <div className="text-sm text-gray-500 mb-1">Time Remaining</div>
+          <div className={`text-2xl font-bold ${timeLeft < 300 ? 'text-red-600' : 'text-[#1A4095]'}`}>
+            {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-6 mb-8">
+        {exam?.questions?.map((q: any, idx: number) => (
+          <div key={q.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <h3 className="font-bold text-gray-900 mb-4 text-sm">
+              <span className="text-[#1A4095] mr-2">Q{idx + 1}.</span> {q.question}
+              <span className="float-right text-xs text-gray-400 font-normal">{q.marks || 1} Marks</span>
+            </h3>
+            
+            {q.type === 'mcq' && (
+              <div className="space-y-2">
+                {q.options?.map((opt: string, oIdx: number) => (
+                  <label key={oIdx} className="flex items-center p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50">
+                    <input 
+                      type="radio" 
+                      name={`q_${q.id}`} 
+                      value={opt}
+                      checked={answers[q.id] === opt}
+                      onChange={() => handleAnswerChange(q.id, opt)}
+                      className="text-[#1A4095] focus:ring-[#1A4095]"
+                    />
+                    <span className="ml-3 text-sm text-gray-700">{opt}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            
+            {q.type === 'true-false' && (
+              <div className="flex space-x-4">
+                {['True', 'False'].map(opt => (
+                  <label key={opt} className="flex-1 flex items-center p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50">
+                    <input 
+                      type="radio" 
+                      name={`q_${q.id}`} 
+                      value={opt}
+                      checked={answers[q.id] === opt}
+                      onChange={() => handleAnswerChange(q.id, opt)}
+                      className="text-[#1A4095] focus:ring-[#1A4095]"
+                    />
+                    <span className="ml-3 text-sm text-gray-700">{opt}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {q.type === 'short-answer' && (
+              <textarea 
+                rows={4}
+                value={answers[q.id] || ''}
+                onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                placeholder="Type your answer here..."
+                className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:border-[#1A4095] outline-none"
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <button onClick={() => setFrame('student-dashboard')} className="px-6 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50">
+          Cancel Exam
+        </button>
+        <button 
+          onClick={handleSubmit} 
+          disabled={submitting}
+          className="px-8 py-3 bg-[#28C0F4] text-white rounded-xl text-sm font-bold hover:bg-opacity-90 shadow-md shadow-[#28C0F4]/20 disabled:opacity-50"
+        >
+          {submitting ? 'Submitting...' : 'Submit Final Answers'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 
 function TutorDashboard() {
   const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'modules' | 'fees' | 'students' | 'exams' | 'marks' | 'certificates' | 'links' | 'profile'>('overview')
@@ -3882,7 +4219,7 @@ function TutorDashboard() {
       passing_marks: Math.floor(examTotalMarks * 0.5),
       questions: examQuestions,
       exam_date: examDate || null,
-      status: 'active'
+      status: 'published'
     }
     
     let examId
@@ -5616,6 +5953,7 @@ export default function App() {
   const [admins, setAdmins] = useState<AdminUser[]>(INITIAL_ADMINS)
   const [showEnrollmentForm, setShowEnrollmentForm] = useState(false)
   const [selectedCourseForEnrollment, setSelectedCourseForEnrollment] = useState<{ id: number; title: string } | undefined>(undefined)
+  const [selectedExamId, setSelectedExamId] = useState<number | null>(null)
 
   // Fetch testimonials from Supabase on load
   useEffect(() => {
@@ -5772,7 +6110,8 @@ export default function App() {
         {frame === 'principal-dashboard' && (
           <PrincipalDashboard admins={admins} setAdmins={setAdmins} />
         )}
-        {frame === 'student-dashboard' && <StudentDashboard />}
+        {frame === 'student-dashboard' && <StudentDashboard setFrame={setFrame} setSelectedExamId={setSelectedExamId} />}
+        {frame === 'exam-player' && selectedExamId && <ExamPlayer examId={selectedExamId} setFrame={setFrame} />}
         {frame === 'tutor-dashboard' && <TutorDashboard />}
       </div>
 

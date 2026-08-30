@@ -343,6 +343,15 @@ export const db = {
         .order('created_at', { ascending: false })
       return { data, error }
     },
+
+    getByStudent: async (studentId: string) => {
+      const { data, error } = await supabase
+        .from('enrollments')
+        .select('*, courses(*)')
+        .eq('student_id', studentId)
+        .order('created_at', { ascending: false })
+      return { data, error }
+    },
   },
 
   // Modules (sub-courses under a course)
@@ -536,6 +545,33 @@ export const db = {
     delete: async (id: number) => {
       const { error } = await supabase
         .from('media_links')
+        .delete()
+        .eq('id', id)
+      return { error }
+    },
+  },
+
+  // Principal Comments
+  principalComments: {
+    getAll: async () => {
+      const { data, error } = await supabase
+        .from('principal_comments')
+        .select('*, users(full_name)')
+        .order('created_at', { ascending: false })
+      return { data, error }
+    },
+
+    create: async (comment: any) => {
+      const { data, error } = await supabase
+        .from('principal_comments')
+        .insert([comment])
+        .select()
+      return { data, error }
+    },
+
+    delete: async (id: number) => {
+      const { error } = await supabase
+        .from('principal_comments')
         .delete()
         .eq('id', id)
       return { error }
