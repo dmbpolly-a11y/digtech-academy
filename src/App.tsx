@@ -2007,7 +2007,7 @@ function LoginPage({
   initialMode?: 'login' | 'register' | 'reset'
 }) {
   const [mode, setMode] = useState<'login' | 'register' | 'reset'>(initialMode)
-  const [accountType, setAccountType] = useState<'student' | 'tutor' | 'principal' | 'admin'>('student')
+  // Role is auto-detected from Supabase — no dropdown needed
   const [logoClickCount, setLogoClickCount] = useState(0)
   const [showAdminForm, setShowAdminForm] = useState(false)
   
@@ -2140,13 +2140,7 @@ function LoginPage({
         return
       }
 
-      // Validate account type matches selected role
-      if (userData.role !== accountType) {
-        setError(`This email is registered as ${userData.role}. Please select the correct account type.`)
-        // Sign out the user since role doesn't match
-        await auth.signOut()
-        return
-      }
+      // Role is fetched from Supabase — no manual selection needed
 
       // Check if account is active
       if (userData.status !== 'active') {
@@ -2417,29 +2411,9 @@ function LoginPage({
                 <h2 className="text-xl font-extrabold text-gray-900 mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
                   Welcome Back
                 </h2>
-                <p className="text-xs text-gray-500 mb-6">Select your role and sign in to continue</p>
+                <p className="text-xs text-gray-500 mb-6">Sign in to your portal</p>
 
-                {/* Role Selector Dropdown */}
-                {!showAdminForm && (
-                <div className="mb-5">
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Account Type</label>
-                  <div className="relative">
-                    <select
-                      value={accountType}
-                      onChange={(e) => {
-                        setAccountType(e.target.value as 'student' | 'tutor' | 'principal' | 'admin')
-                        setError('')
-                      }}
-                      className="w-full border-2 border-[#28C0F4]/20 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input appearance-none bg-white cursor-pointer pr-10"
-                    >
-                      <option value="student">Student</option>
-                      <option value="tutor">Tutor</option>
-                      <option value="principal">Principal</option>
-                    </select>
-                    <Icon icon="lucide:chevron-down" className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
-                )}
+                {/* No role dropdown — role is auto-detected from Supabase */}
 
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div>
