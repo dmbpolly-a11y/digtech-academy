@@ -9,27 +9,121 @@
     
     <!-- Landbot Livechat -->
     <script type="module" src="https://cdn.landbot.io/landbot-3/landbot-3.0.0.mjs"></script>
-    <script type="module" crossorigin src="/digtech-academy/assets/index-B-K-1nIv.js"></script>
-    <link rel="stylesheet" crossorigin href="/digtech-academy/assets/index-BZDeNHZK.css">
+    <script type="module" crossorigin src="/digtech-academy/assets/index-gi2xrP48.js"></script>
+    <link rel="stylesheet" crossorigin href="/digtech-academy/assets/index-CR0UZ2nB.css">
   </head>
   <body>
     <div id="root"></div>
     
     <!-- Initialize Landbot -->
+    <script>
+      var myLandbot = new Landbot.Livechat({
+        configUrl: 'https://storage.googleapis.com/landbot.site/v3/H-3496800-WG83CBLMRS36PSAX/index.json',
+        customData: {
+          avatar: '/images/chatbot.png'
+        }
+      });
+      
+      // Custom styling for Landbot widget with custom logo
+      window.addEventListener('load', function() {
+        function applyChatbotLogo() {
+          console.log('Applying Digtech Academy chatbot logo...');
+          
+          // Try multiple selectors for Landbot button
+          const selectors = [
+            '.landbot-container__button',
+            '#landbot-button',
+            '[class*="landbot"] button',
+            '[class*="Landbot"] button',
+            'button[class*="landbot"]',
+            'button[class*="Landbot"]',
+            '.landbot-button',
+            '.Landbot-button'
+          ];
+          
+          let landbotButton = null;
+          for (const selector of selectors) {
+            landbotButton = document.querySelector(selector);
+            if (landbotButton) break;
+          }
+          
+          if (landbotButton) {
+            console.log('Found Landbot button, applying chatbot.png logo');
+            // Add custom background image
+            landbotButton.style.backgroundImage = 'url(/images/chatbot.png)';
+            landbotButton.style.backgroundSize = 'cover';
+            landbotButton.style.backgroundPosition = 'center';
+            landbotButton.style.backgroundColor = 'transparent';
+            landbotButton.style.border = 'none';
+            landbotButton.style.boxShadow = 'none';
+            
+            // Remove any default content
+            const children = landbotButton.children;
+            for (let i = 0; i < children.length; i++) {
+              children[i].style.display = 'none';
+            }
+          }
+          
+          // Also try to find by iframe
+          const iframes = document.querySelectorAll('iframe');
+          for (const iframe of iframes) {
+            if (iframe.src && iframe.src.includes('landbot')) {
+              console.log('Found Landbot iframe');
+              if (iframe.parentElement) {
+                const parent = iframe.parentElement;
+                parent.style.setProperty('background-image', 'url(/images/chatbot.png)', 'important');
+                parent.style.setProperty('background-size', 'contain', 'important');
+                parent.style.setProperty('background-repeat', 'no-repeat', 'important');
+                parent.style.setProperty('background-position', 'center', 'important');
+                parent.style.setProperty('background-color', 'transparent', 'important');
+              }
+            }
+          }
+          
+          // Check if logo was applied
+          const logoApplied = document.querySelector('[style*="chatbot.png"], [style*="chatbot.png" i]');
+          if (!logoApplied) {
+            console.log('Chatbot logo not applied yet, retrying in 1 second...');
+            setTimeout(applyChatbotLogo, 1000);
+          } else {
+            console.log('Digtech Academy chatbot logo successfully applied!');
+          }
+        }
+        
+        // Apply logo with delay to ensure Landbot is loaded
+        setTimeout(applyChatbotLogo, 2000);
+        // Also retry after longer delay in case Landbot loads slowly
+        setTimeout(applyChatbotLogo, 5000);
+      });
+    </script>
     
     <!-- Additional styling for Landbot widget -->
     <style>
-      /* Style Landbot button with custom chatbot logo */
+      /* ─── Landbot Chatbot Stability ─────────────────────────────────── */
+      /* Prevent the Landbot widget from shaking/jittering on mobile */
+      [class*="LandbotLivechat"],
+      [class*="landbot"],
+      [class*="Landbot"] {
+        transition: none !important;
+        animation: none !important;
+        will-change: auto !important;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
+
+      /* Ensure stable positioning */
+      [class*="LandbotLivechat"] {
+        position: fixed !important;
+        bottom: 0 !important;
+        right: 0 !important;
+        z-index: 9999 !important;
+      }
+
+      /* Custom logo styling for the Landbot button - without fighting animations */
       .landbot-container__button,
       #landbot-button,
       [class*="landbot"] button,
-      [class*="Landbot"] button,
-      button[class*="landbot"],
-      button[class*="Landbot"],
-      .landbot-button,
-      .Landbot-button,
-      [class*="LandbotLivechat"] > div:first-child,
-      iframe[src*="landbot"] {
+      [class*="Landbot"] button {
         background-image: url('/digtech-academy/images/chatbot.png') !important;
         background-size: contain !important;
         background-position: center !important;
@@ -37,8 +131,10 @@
         background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
+        transition: none !important;
+        animation: none !important;
       }
-      
+
       /* Hide any default content inside the button */
       .landbot-container__button > *,
       #landbot-button > *,
@@ -46,25 +142,8 @@
       [class*="Landbot"] button > * {
         display: none !important;
       }
-      
-      /* Ensure the button shows the custom image */
-      .landbot-container__button::before,
-      #landbot-button::before,
-      [class*="landbot"] button::before,
-      [class*="Landbot"] button::before {
-        content: '' !important;
-        background-image: url('/digtech-academy/images/chatbot.png') !important;
-        background-size: cover !important;
-        width: 100% !important;
-        height: 100% !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        border-radius: 50% !important;
-        z-index: 1 !important;
-      }
-      
-      /* Make sure the logo is visible on all states */
+
+      /* Make sure the logo is visible on all states - no transform animations */
       .landbot-container__button:hover,
       .landbot-container__button:active,
       .landbot-container__button:focus,
@@ -73,6 +152,13 @@
       #landbot-button:focus {
         background-image: url('/digtech-academy/images/chatbot.png') !important;
         opacity: 1 !important;
+        transform: none !important;
+      }
+
+      /* Prevent any inherited global transitions from causing shaking */
+      iframe[src*="landbot"] {
+        transition: none !important;
+        animation: none !important;
       }
     </style>
   </body>
