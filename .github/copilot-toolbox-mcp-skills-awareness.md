@@ -1,6 +1,6 @@
 # GitHub Copilot Toolbox — MCP & Skills awareness
 
-_Generated: 2026-08-06T13:56:31.389Z_
+_Generated: 2026-08-25T15:00:32.794Z_
 
 ## How to use this report
 
@@ -13,9 +13,9 @@ _Generated: 2026-08-06T13:56:31.389Z_
 
 ## MCP — workspace
 
-Workspace `mcp.json` _(folder: digitech-academy)_
+Workspace `mcp.json` _(folder: digtech-academy)_
 
-- **c:\Users\AFRICA\Desktop\digitech-academy\.vscode\mcp.json** — _File missing_
+- **c:\Users\AFRICA\Desktop\digtech-academy\.vscode\mcp.json** — _File missing_
 
 _No active workspace servers in mcp.json._
 

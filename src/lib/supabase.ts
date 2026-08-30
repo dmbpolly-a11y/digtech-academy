@@ -450,6 +450,15 @@ export const db = {
         .eq('id', id)
       return { error }
     },
+
+    getByStudent: async (studentId: string) => {
+      const { data, error } = await supabase
+        .from('exam_submissions')
+        .select('*, exams(title, total_marks)')
+        .eq('student_id', studentId)
+        .order('submitted_at', { ascending: false })
+      return { data, error }
+    },
   },
 
   // Live Class Links

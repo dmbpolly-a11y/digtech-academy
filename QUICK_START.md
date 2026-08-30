@@ -2,10 +2,10 @@
 
 ## Your Supabase Credentials ✅
 
-- **Project URL**: `https://bibhhrpnubdazxdxoglx.supabase.co`
-- **Anon Key**: `sb_publishable_f9u1ZPX4hsMnQOxdu_B5qQ_A-4QWsg_`
-- **Dashboard**: https://supabase.com/dashboard/project/bibhhrpnubdazxdxoglx
-- **Login**: dm.bpolly@gmail.com / ^#z!ZEJ9aXFZ^MG
+- **Project URL**: `[YOUR_SUPABASE_PROJECT_URL]`
+- **Anon Key**: `[YOUR_SUPABASE_ANON_KEY]`
+- **Dashboard**: https://supabase.com/dashboard/project/YOUR_PROJECT_ID
+- **Login**: dm.bpolly@gmail.com / [YOUR_ADMIN_PASSWORD]
 
 ---
 
@@ -27,10 +27,10 @@ Go to **Authentication → Users** and create:
 
 | Email | Password | Role |
 |-------|----------|------|
-| admin@digtechacademy.ug | Digtech@2024 | admin |
-| tutor@digtechacademy.ug | Tutor@2024 | tutor |
-| student@digtechacademy.ug | Student@2024 | student |
-| principal@digtechacademy.ug | Principal@2024 | principal |
+| admin@digtechacademy.ug | [PASSWORD] | admin |
+| tutor@digtechacademy.ug | [PASSWORD] | tutor |
+| student@digtechacademy.ug | [PASSWORD] | student |
+| principal@digtechacademy.ug | [PASSWORD] | principal |
 
 **Copy each user's UUID after creation!**
 
@@ -57,7 +57,7 @@ npm run dev
 1. Open http://localhost:8443
 2. Click **Sign In**
 3. Select **admin**
-4. Login: admin@digtechacademy.ug / Digtech@2024
+4. Login: admin@digtechacademy.ug / [PASSWORD]
 5. ✅ Should redirect to Admin Dashboard!
 
 ---

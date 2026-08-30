@@ -235,6 +235,7 @@ CREATE TABLE IF NOT EXISTS media_links (
   link_type TEXT NOT NULL CHECK (link_type IN ('zoom', 'google-meet', 'youtube', 'other')),
   url TEXT NOT NULL,
   description TEXT,
+  scheduled_at TIMESTAMPTZ,           -- when the live class is scheduled
   is_active BOOLEAN DEFAULT TRUE,
   created_by UUID REFERENCES users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -338,6 +339,26 @@ CREATE POLICY "Users can view own data" ON users
 -- Tutors can manage their own courses
 CREATE POLICY "Tutors can manage own courses" ON courses
   FOR ALL USING (tutor_id = auth.uid());
+
+-- Tutors can manage live links for their own courses
+CREATE POLICY "Tutors can manage own live links" ON media_links
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM courses
+      WHERE courses.id = media_links.course_id
+        AND courses.tutor_id = auth.uid()
+    )
+  );
+
+-- Enrolled students can view live links for their courses
+CREATE POLICY "Students can view live links for enrolled courses" ON media_links
+  FOR SELECT USING (
+    is_active = true AND EXISTS (
+      SELECT 1 FROM enrollments
+      WHERE enrollments.course_id = media_links.course_id
+        AND enrollments.student_id = auth.uid()
+    )
+  );
 
 -- Students can view their enrollments
 CREATE POLICY "Students can view own enrollments" ON enrollments

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { Icon } from '@iconify/react'
 import { simulateCompletePaymentFlow, validatePaymentDetails, getMerchantAccount } from './utils/pesapal'
-import { auth, db, logActivity } from './lib/supabase'
+import { auth, db, logActivity, supabase } from './lib/supabase'
 import { CourseForm } from './components/CourseForm'
 import { EnrollmentForm } from './components/EnrollmentForm'
 
@@ -290,7 +290,7 @@ const INITIAL_TESTIMONIALS: SuccessStory[] = [
     name: 'Michael Okello',
     text: 'Best investment in my career. The tutors are industry professionals and the hands-on projects prepared me perfectly for real-world challenges.',
     role: 'Software Engineer at Andela',
-    avatar: '/images/liveclass6.png',
+    avatar: '/images/liveclass1.png',
     rating: 5,
   },
 ]
@@ -899,7 +899,7 @@ function HomePage({
     '/images/liveclass3.png',
     '/images/liveclass4.png',
     '/images/liveclass5.png',
-    '/images/liveclass6.png',
+    '/images/liveclass1.png',
   ]
 
   // Auto-scroll carousel
@@ -2006,7 +2006,7 @@ function LoginPage({
   initialMode?: 'login' | 'register' | 'reset'
 }) {
   const [mode, setMode] = useState<'login' | 'register' | 'reset'>(initialMode)
-  const [accountType, setAccountType] = useState<'student' | 'tutor' | 'principal'>('student')
+  const [accountType, setAccountType] = useState<'student' | 'tutor' | 'principal' | 'admin'>('student')
   const [logoClickCount, setLogoClickCount] = useState(0)
   const [showAdminForm, setShowAdminForm] = useState(false)
   
@@ -2076,20 +2076,31 @@ function LoginPage({
     return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''))
   }
 
-  const checkDuplicates = (email: string, phone: string) => {
-    // Simulate checking for existing users
-    const existingEmails = ['admin@digtechacademy.ug', 'test@example.com']
-    const existingPhones = ['0770000000']
-    
-    if (existingEmails.includes(email.toLowerCase())) {
-      return 'This email is already registered. Please login instead.'
+  const checkDuplicates = async (email: string, phone: string): Promise<string | null> => {
+    try {
+      // Check for duplicate email in Supabase users table
+      const { data: emailCheck } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email.toLowerCase().trim())
+        .limit(1)
+      if (emailCheck && emailCheck.length > 0) {
+        return 'This email is already registered. Please sign in instead.'
+      }
+      // Check for duplicate phone
+      const cleanPhone = phone.replace(/[\s\-\(\)]/g, '')
+      const { data: phoneCheck } = await supabase
+        .from('users')
+        .select('id')
+        .eq('phone', cleanPhone)
+        .limit(1)
+      if (phoneCheck && phoneCheck.length > 0) {
+        return 'This phone number is already registered. Please use a different number.'
+      }
+      return null
+    } catch {
+      return null // Don't block registration on network error
     }
-    
-    if (existingPhones.includes(phone.replace(/[\s\-\(\)]/g, ''))) {
-      return 'This phone number is already registered.'
-    }
-    
-    return null
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -2208,6 +2219,13 @@ function LoginPage({
     }
 
     try {
+      // Check for duplicate email and phone in database
+      const dupError = await checkDuplicates(regEmail, regPhone)
+      if (dupError) {
+        setError(dupError)
+        return
+      }
+
       // Sign up with Supabase Auth
       const { data, error: signUpError } = await auth.signUp(
         regEmail,
@@ -2322,6 +2340,7 @@ function LoginPage({
               setLogoClickCount(newCount)
               if (newCount === 5) {
                 setShowAdminForm(true)
+                setAccountType('admin')
                 setMode('login')
                 setLogoClickCount(0)
               }
@@ -2400,13 +2419,14 @@ function LoginPage({
                 <p className="text-xs text-gray-500 mb-6">Select your role and sign in to continue</p>
 
                 {/* Role Selector Dropdown */}
+                {!showAdminForm && (
                 <div className="mb-5">
                   <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Account Type</label>
                   <div className="relative">
                     <select
                       value={accountType}
                       onChange={(e) => {
-                        setAccountType(e.target.value as 'student' | 'tutor' | 'principal')
+                        setAccountType(e.target.value as 'student' | 'tutor' | 'principal' | 'admin')
                         setError('')
                       }}
                       className="w-full border-2 border-[#28C0F4]/20 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input appearance-none bg-white cursor-pointer pr-10"
@@ -2418,6 +2438,7 @@ function LoginPage({
                     <Icon icon="lucide:chevron-down" className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
+                )}
 
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div>
@@ -2779,7 +2800,53 @@ function AdminDashboard({
   setTestimonials: React.Dispatch<React.SetStateAction<SuccessStory[]>>
   onLogout: () => void
 }) {
-  const [tab, setTab] = useState<'overview' | 'stories' | 'withdrawals'>('overview')
+  const [tab, setTab] = useState<'overview' | 'stories' | 'withdrawals' | 'profile'>('overview')
+  
+  // Profile & Photo Upload state for admin
+  const [adminProfileImage, setAdminProfileImage] = useState('/images/liveclass3.png')
+  const [adminImagePreview, setAdminImagePreview] = useState<string | null>(null)
+  const [adminUploading, setAdminUploading] = useState(false)
+  const [adminProfile, setAdminProfile] = useState({
+    firstName: 'Admin',
+    lastName: 'User',
+    email: 'admin@digitechacademy.ug',
+    phone: '0770567890',
+    bio: 'Administrator managing the academy platform and content.'
+  })
+  const [adminSuccessMessage, setAdminSuccessMessage] = useState('')
+  
+  // Photo upload function for admin
+  const handleAdminImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (JPG, PNG, etc.)')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB')
+      return
+    }
+
+    setAdminUploading(true)
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const result = e.target?.result as string
+      setAdminImagePreview(result)
+      
+      setTimeout(() => {
+        setAdminProfileImage(result)
+        setAdminImagePreview(null)
+        setAdminUploading(false)
+        setAdminSuccessMessage('Profile picture updated successfully!')
+        setTimeout(() => setAdminSuccessMessage(''), 3000)
+      }, 1500)
+    }
+    reader.readAsDataURL(file)
+  }
   const [newStoryName, setNewStoryName] = useState('')
   const [newStoryRole, setNewStoryRole] = useState('')
   const [newStoryText, setNewStoryText] = useState('')
@@ -2975,7 +3042,57 @@ function PrincipalDashboard({
   admins: AdminUser[]
   setAdmins: React.Dispatch<React.SetStateAction<AdminUser[]>>
 }) {
-  const [tab, setTab] = useState<'admins' | 'tutors' | 'certs'>('admins')
+  const [tab, setTab] = useState<'admins' | 'tutors' | 'certs' | 'profile'>('admins')
+  
+  // Profile & Photo Upload state for principal
+  const [principalProfileImage, setPrincipalProfileImage] = useState('/images/liveclass2.png')
+  const [principalImagePreview, setPrincipalImagePreview] = useState<string | null>(null)
+  const [principalUploading, setPrincipalUploading] = useState(false)
+  const [principalProfile, setPrincipalProfile] = useState({
+    firstName: 'Principal',
+    lastName: 'Admin',
+    email: 'principal@digtechacademy.ug',
+    phone: '0770789456',
+    bio: 'Super admin overseeing all operations and administration.'
+  })
+  const [principalSuccessMessage, setPrincipalSuccessMessage] = useState('')
+  // Photo upload function for principal
+  const handlePrincipalImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (JPG, PNG, etc.)')
+      return
+    }
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB')
+      return
+    }
+
+    setPrincipalUploading(true)
+
+    // Simulate upload process
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const result = e.target?.result as string
+      setPrincipalImagePreview(result)
+      
+      // Simulate API call delay
+      setTimeout(() => {
+        setPrincipalProfileImage(result)
+        setPrincipalImagePreview(null)
+        setPrincipalUploading(false)
+        setPrincipalSuccessMessage('Profile picture updated successfully!')
+        setTimeout(() => setPrincipalSuccessMessage(''), 3000)
+      }, 1500)
+    }
+    reader.readAsDataURL(file)
+  }
+
   const [adminName, setAdminName] = useState('')
   const [adminEmail, setAdminEmail] = useState('')
   const [adminPhone, setAdminPhone] = useState('')
@@ -3050,6 +3167,7 @@ function PrincipalDashboard({
             { id: 'admins', label: 'Admin Accounts Provisioning', icon: 'lucide:shield-alert' },
             { id: 'tutors', label: 'Faculty & Tutors', icon: 'lucide:user-check' },
             { id: 'certs', label: 'Certificate Approvals', icon: 'lucide:award' },
+            { id: 'profile', label: 'My Profile', icon: 'lucide:user' },
           ].map((item) => (
             <button
               key={item.id}
@@ -3127,6 +3245,113 @@ function PrincipalDashboard({
                     <span className="text-[11px] text-gray-400">Created: {a.createdAt}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'profile' && (
+          <div className="space-y-6">
+            <h1 className="text-2xl font-extrabold text-gray-900" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              Principal Profile Management
+            </h1>
+            <p className="text-xs text-gray-500">Manage your profile picture and personal information as Super Admin.</p>
+
+            {principalSuccessMessage && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                <div className="flex items-center gap-2">
+                  <Icon icon="lucide:check-circle" className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-green-800 font-medium">{principalSuccessMessage}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="md:col-span-1">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wider">Profile Photo</h3>
+                  <div className="flex flex-col items-center mb-6">
+                    <div className="relative group">
+                      <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100">
+                        {principalImagePreview ? (
+                          <img src={principalImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={principalProfileImage} alt="Profile" className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                      <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        <input type="file" accept="image/*" onChange={handlePrincipalImageUpload} className="hidden" />
+                        <div className="text-center">
+                          <Icon icon="lucide:camera" className="w-8 h-8 text-white mx-auto mb-1" />
+                          <span className="text-xs text-white font-bold">Change Photo</span>
+                        </div>
+                      </label>
+                    </div>
+                    {principalUploading && (
+                      <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+                        <Icon icon="lucide:loader-2" className="w-3 h-3 animate-spin" />
+                        Uploading image...
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-500 mt-2">Click photo to upload (JPG/PNG, max 5MB)</p>
+                    {principalProfileImage !== '/images/liveclass2.png' && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm("Are you sure you want to delete your profile photo?")) {
+                            setPrincipalProfileImage('/images/liveclass2.png')
+                            setPrincipalSuccessMessage('Profile photo deleted successfully!')
+                            setTimeout(() => setPrincipalSuccessMessage(''), 3000)
+                          }
+                        }}
+                        className="mt-3 px-4 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-all"
+                      >
+                        <Icon icon="lucide:trash-2" className="w-3 h-3 mr-1 inline" />
+                        Delete Photo
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-700 mb-1">Role</h4>
+                      <div className="bg-blue-50 px-3 py-2 rounded-lg text-xs font-bold text-blue-700">Super Admin / Principal</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wider">Personal Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">First Name</label>
+                      <input type="text" value={principalProfile.firstName} onChange={(e) => setPrincipalProfile({...principalProfile, firstName: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#1A4095]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Last Name</label>
+                      <input type="text" value={principalProfile.lastName} onChange={(e) => setPrincipalProfile({...principalProfile, lastName: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#1A4095]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Email Address</label>
+                      <input type="email" value={principalProfile.email} onChange={(e) => setPrincipalProfile({...principalProfile, email: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#1A4095]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Phone Number</label>
+                      <input type="tel" value={principalProfile.phone} onChange={(e) => setPrincipalProfile({...principalProfile, phone: e.target.value})} placeholder="0770789456" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#1A4095]" />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Bio / About Me</label>
+                    <textarea value={principalProfile.bio} onChange={(e) => setPrincipalProfile({...principalProfile, bio: e.target.value})} rows={4} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#1A4095]" />
+                  </div>
+                  <div className="mt-6 pt-4 border-t border-gray-100">
+                    <div className="flex justify-end gap-3">
+                      <button onClick={() => { setPrincipalSuccessMessage('Profile changes saved successfully!'); setTimeout(() => setPrincipalSuccessMessage(''), 3000) }} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#1A4095] to-[#28C0F4] text-white font-bold text-sm hover:shadow-lg transition-all">
+                        Save Changes
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -3404,7 +3629,7 @@ function StudentDashboard() {
 }
 
 function TutorDashboard() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'modules' | 'fees' | 'students' | 'exams' | 'marks' | 'certificates' | 'links'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'modules' | 'fees' | 'students' | 'exams' | 'marks' | 'certificates' | 'links' | 'profile'>('overview')
   const [courses, setCourses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showCourseModal, setShowCourseModal] = useState(false)
@@ -3412,6 +3637,56 @@ function TutorDashboard() {
   const [selectedCourse, setSelectedCourse] = useState<any>(null)
   const [tutorId, setTutorId] = useState<string>('')
   const [tutorName, setTutorName] = useState<string>('Tutor')
+
+  // Profile & Photo Upload state
+  const [tutorProfileImage, setTutorProfileImage] = useState('/images/liveclass1.png')
+  const [tutorImagePreview, setTutorImagePreview] = useState<string | null>(null)
+  const [tutorUploading, setTutorUploading] = useState(false)
+  const [tutorProfile, setTutorProfile] = useState({
+    firstName: 'John',
+    lastName: 'Doe',
+    email: 'tutor@digtechacademy.ug',
+    phone: '0770123456',
+    bio: 'Experienced educator passionate about technology and student success.'
+  })
+  const [tutorSuccessMessage, setTutorSuccessMessage] = useState('')
+  
+  // Photo upload function for tutors
+  const handleTutorImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (JPG, PNG, etc.)')
+      return
+    }
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB')
+      return
+    }
+
+    setTutorUploading(true)
+
+    // Simulate upload process
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const result = e.target?.result as string
+      setTutorImagePreview(result)
+      
+      // Simulate API call delay
+      setTimeout(() => {
+        setTutorProfileImage(result)
+        setTutorImagePreview(null)
+        setTutorUploading(false)
+        setTutorSuccessMessage('Profile picture updated successfully!')
+        setTimeout(() => setTutorSuccessMessage(''), 3000)
+      }, 1500)
+    }
+    reader.readAsDataURL(file)
+  }
 
   // Modules state
   const [modules, setModules] = useState<any[]>([])
@@ -3485,7 +3760,16 @@ function TutorDashboard() {
     if (editingModule) await db.modules.update(editingModule.id, payload); else await db.modules.create(payload)
     setShowModuleModal(false); loadModules(selectedCourse.id)
   }
-  const deleteModule = async (id: number) => { if (!confirm('Delete this module?')) return; await db.modules.delete(id); if (selectedCourse) loadModules(selectedCourse.id) }
+  const deleteModule = async (id: number) => { 
+    if (!confirm('Delete this module?')) return; 
+    try {
+      const { error } = await db.modules.delete(id); 
+      if (error) throw error;
+      if (selectedCourse) loadModules(selectedCourse.id);
+    } catch (err: any) {
+      alert('Failed to delete module: ' + err.message);
+    }
+  }
 
   // Enrollment helpers
   const loadEnrollments = async () => {
@@ -3494,7 +3778,16 @@ function TutorDashboard() {
     setEnrollments(all)
   }
   const approveEnrollment = async (id: number) => { await db.enrollments.update(id, { status: 'enrolled', payment_status: 'PAID' }); loadEnrollments() }
-  const removeEnrollment = async (id: number) => { if (!confirm('Remove this student enrollment?')) return; await db.enrollments.delete(id); loadEnrollments() }
+  const removeEnrollment = async (id: number) => { 
+    if (!confirm('Remove this student enrollment?')) return; 
+    try {
+      const { error } = await db.enrollments.delete(id); 
+      if (error) throw error;
+      loadEnrollments();
+    } catch (err: any) {
+      alert('Failed to remove enrollment: ' + err.message);
+    }
+  }
 
   // Exam CRUD with enhanced features
   const [examDuration, setExamDuration] = useState(60)
@@ -3594,8 +3887,13 @@ function TutorDashboard() {
   
   const deleteExam = async (id: number) => { 
     if (!confirm('Delete this exam?')) return
-    await db.exams.delete(id)
-    loadExams()
+    try {
+      const { error } = await db.exams.delete(id)
+      if (error) throw error;
+      loadExams()
+    } catch (err: any) {
+      alert('Failed to delete exam: ' + err.message);
+    }
   }
 
   // Marks helpers with report generation
@@ -3800,7 +4098,16 @@ function TutorDashboard() {
     if (editingLink) await db.liveLinks.update(editingLink.id, payload); else await db.liveLinks.create(payload)
     setShowLinkModal(false); loadLiveLinks()
   }
-  const deleteLink = async (id: number) => { if (!confirm('Delete this link?')) return; await db.liveLinks.delete(id); loadLiveLinks() }
+  const deleteLink = async (id: number) => { 
+    if (!confirm('Delete this link?')) return; 
+    try {
+      const { error } = await db.liveLinks.delete(id); 
+      if (error) throw error;
+      loadLiveLinks();
+    } catch (err: any) {
+      alert('Failed to delete link: ' + err.message);
+    }
+  }
 
   // Fee inline edit
   const saveFee = async (courseId: number) => {
@@ -3878,6 +4185,7 @@ function TutorDashboard() {
               { id: 'marks', label: 'Marks & Grades', icon: 'lucide:award' },
               { id: 'certificates', label: 'Certificates', icon: 'lucide:badge-check' },
               { id: 'links', label: 'Live Links', icon: 'lucide:video' },
+              { id: 'profile', label: 'Profile', icon: 'lucide:user' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -4818,6 +5126,184 @@ function TutorDashboard() {
 
       </div>
 
+      {/* ── PROFILE TAB ── */}
+      {activeTab === 'profile' && (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-[#1A4095] to-[#28C0F4] rounded-2xl p-6 text-white shadow-lg">
+            <h1 className="text-2xl font-extrabold mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              Tutor Profile Management
+            </h1>
+            <p className="text-sm text-blue-100">Manage your profile picture and personal information</p>
+          </div>
+
+          {/* Success Message */}
+          {tutorSuccessMessage && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+              <div className="flex items-center gap-2">
+                <Icon icon="lucide:check-circle" className="w-5 h-5 text-green-600" />
+                <span className="text-sm text-green-800 font-medium">{tutorSuccessMessage}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Left Column: Profile Photo */}
+            <div className="md:col-span-1">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wider">Profile Photo</h3>
+                
+                {/* Profile Photo Upload */}
+                <div className="flex flex-col items-center mb-6">
+                  <div className="relative group">
+                    <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100">
+                      {tutorImagePreview ? (
+                        <img src={tutorImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={tutorProfileImage} alt="Profile" className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleTutorImageUpload}
+                        className="hidden"
+                      />
+                      <div className="text-center">
+                        <Icon icon="lucide:camera" className="w-8 h-8 text-white mx-auto mb-1" />
+                        <span className="text-xs text-white font-bold">Change Photo</span>
+                      </div>
+                    </label>
+                  </div>
+                  
+                  {tutorUploading && (
+                    <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+                      <Icon icon="lucide:loader-2" className="w-3 h-3 animate-spin" />
+                      Uploading image...
+                    </div>
+                  )}
+                  
+                  <p className="text-xs text-gray-500 mt-2">Click photo to upload (JPG/PNG, max 5MB)</p>
+                  
+                  {/* Delete Photo Button */}
+                  {tutorProfileImage !== '/images/liveclass1.png' && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete your profile photo?')) {
+                          setTutorProfileImage('/images/liveclass1.png')
+                          setTutorSuccessMessage('Profile photo deleted successfully!')
+                          setTimeout(() => setTutorSuccessMessage(''), 3000)
+                        }
+                      }}
+                      className="mt-3 px-4 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-all"
+                    >
+                      <Icon icon="lucide:trash-2" className="w-3 h-3 mr-1 inline" />
+                      Delete Photo
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-700 mb-1">Tutor ID</h4>
+                    <div className="bg-gray-50 px-3 py-2 rounded-lg text-xs font-mono text-gray-600">TUT-{tutorId || '00123'}</div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-700 mb-1">Verification Status</h4>
+                    <div className="flex items-center gap-2">
+                      <Icon icon="lucide:badge-check" className="w-4 h-4 text-green-500" />
+                      <span className="text-xs text-green-700 font-medium">Verified Tutor</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Profile Information */}
+            <div className="md:col-span-2">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wider">Personal Information</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      value={tutorProfile.firstName}
+                      onChange={(e) => setTutorProfile({...tutorProfile, firstName: e.target.value})}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#1A4095]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={tutorProfile.lastName}
+                      onChange={(e) => setTutorProfile({...tutorProfile, lastName: e.target.value})}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#1A4095]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={tutorProfile.email}
+                      onChange={(e) => setTutorProfile({...tutorProfile, email: e.target.value})}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#1A4095]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={tutorProfile.phone}
+                      onChange={(e) => setTutorProfile({...tutorProfile, phone: e.target.value})}
+                      placeholder="0770123456"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#1A4095]"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                    Bio / About Me
+                  </label>
+                  <textarea
+                    value={tutorProfile.bio}
+                    onChange={(e) => setTutorProfile({...tutorProfile, bio: e.target.value})}
+                    rows={4}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#1A4095]"
+                  />
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => {
+                        setTutorSuccessMessage('Profile changes saved successfully!')
+                        setTimeout(() => setTutorSuccessMessage(''), 3000)
+                      }}
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#1A4095] to-[#28C0F4] text-white font-bold text-sm hover:shadow-lg transition-all"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Course Form Modal */}
       {showCourseModal && (
         <CourseForm
@@ -5105,7 +5591,10 @@ function ContactPage() {
 // ─── MAIN APP COMPONENT ───────────────────────────────────────────────────────
 export default function App() {
   const [frame, setFrame] = useState<Frame>('home')
-  const [currentUser, setCurrentUser] = useState<{ email: string; role: string; name?: string } | null>(null)
+  const [currentUser, setCurrentUser] = useState<{ email: string; role: string; name?: string } | null>(() => {
+    const stored = sessionStorage.getItem('digtech_user')
+    return stored ? JSON.parse(stored) : null
+  })
   const [testimonials, setTestimonials] = useState<SuccessStory[]>(INITIAL_TESTIMONIALS)
   const [admins, setAdmins] = useState<AdminUser[]>(INITIAL_ADMINS)
   const [showEnrollmentForm, setShowEnrollmentForm] = useState(false)
@@ -5119,22 +5608,28 @@ export default function App() {
   // Check for existing Supabase session on app load
   useEffect(() => {
     const checkSession = async () => {
-      const { session } = await auth.getSession()
+      const { data: { session } } = await auth.getSession()
       
       if (session?.user) {
         // Get user profile from database
         const { data: userData, error } = await db.users.getById(session.user.id)
         
         if (userData && !error) {
-          setCurrentUser({
+          const userObj = {
             email: userData.email,
             role: userData.role,
             name: userData.full_name
-          })
+          }
+          setCurrentUser(userObj)
+          sessionStorage.setItem('digtech_user', JSON.stringify(userObj))
           
           // Update last login
           await db.users.update(session.user.id, { last_login: new Date().toISOString() })
         }
+      } else {
+        // If Supabase has no session, ensure we clear local state
+        setCurrentUser(null)
+        sessionStorage.removeItem('digtech_user')
       }
     }
     
@@ -5151,8 +5646,33 @@ export default function App() {
     }
   }, [frame, currentUser])
 
+  // Prevent unauthenticated users from accessing protected dashboards
+  useEffect(() => {
+    if (!currentUser && ['student-dashboard', 'tutor-dashboard', 'principal-dashboard', 'admin-dashboard'].includes(frame)) {
+      setFrame('login')
+    }
+  }, [frame, currentUser])
+
+  // Prevent logout on back button navigation
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (currentUser) {
+        e.preventDefault()
+        // Stay on current dashboard
+        window.history.pushState(null, '', window.location.href)
+      }
+    }
+    
+    window.addEventListener('popstate', handlePopState)
+    window.history.pushState(null, '', window.location.href)
+    
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [currentUser])
+
   const handleLoginSuccess = (email: string, role: string, name: string) => {
-    setCurrentUser({ email, role, name })
+    const userData = { email, role, name }
+    sessionStorage.setItem('digtech_user', JSON.stringify(userData))
+    setCurrentUser(userData)
     if (role === 'admin') setFrame('admin-dashboard')
     else if (role === 'tutor') setFrame('tutor-dashboard')
     else if (role === 'principal') setFrame('principal-dashboard')
@@ -5162,11 +5682,17 @@ export default function App() {
   const handleLogout = async () => {
     // Sign out from Supabase
     await auth.signOut()
+    sessionStorage.removeItem('digtech_user')
     setCurrentUser(null)
     setFrame('home')
   }
 
   const handleEnrollClick = (course?: { id: number; title: string; price?: number }) => {
+    if (!currentUser) {
+      alert('Please login to continue')
+      setFrame('login')
+      return
+    }
     setSelectedCourseForEnrollment(course)
     setShowEnrollmentForm(true)
   }
