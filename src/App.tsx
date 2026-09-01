@@ -2040,6 +2040,16 @@ function LoginPage({
   // Reset password fields
   const [resetEmail, setResetEmail] = useState('')
   const [resetSent, setResetSent] = useState(false)
+  const [resetCooldown, setResetCooldown] = useState(0)
+
+  // 30-second countdown timer for rate limits
+  useEffect(() => {
+    if (resetCooldown <= 0) return
+    const timer = setInterval(() => {
+      setResetCooldown((prev) => (prev > 0 ? prev - 1 : 0))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [resetCooldown])
   
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -2119,7 +2129,12 @@ function LoginPage({
       const { data, error: signInError } = await auth.signIn(loginEmail, loginPassword)
       
       if (signInError) {
-        setError('Invalid email or password.')
+        const msg = signInError.message?.toLowerCase() || ''
+        if (msg.includes('rate limit') || msg.includes('too many') || msg.includes('security purposes') || (signInError as any).status === 429) {
+          setError('Too many attempts. For security purposes, please wait 30 seconds before trying again.')
+        } else {
+          setError('Invalid email or password.')
+        }
         return
       }
 
@@ -2279,6 +2294,11 @@ function LoginPage({
     e.preventDefault()
     setError('')
     setSuccess('')
+
+    if (resetCooldown > 0) {
+      setError(`Please wait ${resetCooldown} seconds before requesting another reset email.`)
+      return
+    }
     
     if (!validateEmail(resetEmail)) {
       setError('Please enter a valid email address.')
@@ -2290,11 +2310,18 @@ function LoginPage({
       const { error: resetError } = await auth.resetPassword(resetEmail)
       
       if (resetError) {
-        setError('Failed to send reset email. Please check the email address and try again.')
+        setResetCooldown(30)
+        const msg = resetError.message?.toLowerCase() || ''
+        if (msg.includes('rate limit') || msg.includes('security purposes') || msg.includes('seconds') || (resetError as any).status === 429) {
+          setError('Rate limit reached. For security purposes, please wait 30 seconds before requesting another reset email.')
+        } else {
+          setError(resetError.message || 'Failed to send reset email. Please check the email address and try again.')
+        }
         console.error('Password reset error:', resetError)
         return
       }
 
+      setResetCooldown(30)
       setResetSent(true)
       setSuccess('Password reset link sent! Check your email inbox.')
       
@@ -2407,7 +2434,7 @@ function LoginPage({
                 <h2 className="text-xl font-extrabold text-gray-900 mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
                   Welcome Back
                 </h2>
-                <p className="text-xs text-gray-500 mb-6">Sign in to your portal</p>
+                <p className="text-xs text-gray-500 mb-6">Sign in to your portal (Student, Tutor, Admin, or Principal)</p>
 
                 {/* No role dropdown — role is auto-detected from Supabase */}
 
@@ -2720,10 +2747,11 @@ function LoginPage({
 
                     <button
                       type="submit"
-                      className="w-full py-3.5 rounded-xl text-white font-bold text-sm shadow-lg hover:scale-105 active:scale-95 transition-all blue-btn-gradient-hover"
+                      disabled={resetCooldown > 0}
+                      className="w-full py-3.5 rounded-xl text-white font-bold text-sm shadow-lg hover:scale-105 active:scale-95 transition-all blue-btn-gradient-hover disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                       style={{ background: 'linear-gradient(135deg, #1A4095 0%, #28C0F4 100%)' }}
                     >
-                      Send Reset Link
+                      {resetCooldown > 0 ? `Please wait ${resetCooldown}s` : 'Send Reset Link'}
                     </button>
 
                     <button
