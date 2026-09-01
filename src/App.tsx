@@ -2344,13 +2344,13 @@ function LoginPage({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-[#28C0F4]/10 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated blue background elements */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/60 to-[#28C0F4]/10 flex items-center justify-center p-4 md:p-8 relative overflow-hidden">
+      {/* Animated background circles */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-[#28C0F4]/20 rounded-full blur-3xl animate-pulse"></div>
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#1A4095]/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-      
-      <div className="w-full max-w-md relative z-10 auth-container">
-        {/* Logo */}
+
+      <div className="w-full max-w-5xl relative z-10">
+        {/* Top Logo */}
         <div className="text-center mb-6">
           <div 
             onClick={() => {
@@ -2358,14 +2358,13 @@ function LoginPage({
               setLogoClickCount(newCount)
               if (newCount === 5) {
                 setShowAdminForm(true)
-                setAccountType('admin')
                 setMode('login')
                 setLogoClickCount(0)
               }
             }}
             className="inline-block cursor-pointer"
           >
-            <img src="/images/Digtech Academy Logo.png" alt="Digtech Academy" className="h-10 w-auto object-contain mx-auto hover:scale-105 transition-transform" />
+            <img src="/images/Digtech Academy Logo.png" alt="Digtech Academy" className="h-11 w-auto object-contain mx-auto hover:scale-105 transition-transform" />
           </div>
           {showAdminForm && (
             <p className="mt-2 text-xs font-bold text-[#1A4095] animate-fade-in-down">
@@ -2374,46 +2373,83 @@ function LoginPage({
           )}
         </div>
 
-        {/* Animated Container */}
-        <div className="bg-white rounded-3xl shadow-2xl border-2 border-[#28C0F4]/30 overflow-hidden auth-form-slide" style={{ boxShadow: '0 20px 60px rgba(40, 192, 244, 0.25), 0 0 40px rgba(26, 64, 149, 0.1)' }}>
-          {/* Mode Toggle Tabs */}
-          <div className="flex border-b border-[#28C0F4]/20 bg-gradient-to-r from-blue-50/50 to-[#28C0F4]/5">
-            <button
-              type="button"
-              onClick={() => {
-                setMode('login')
-                setError('')
-                setSuccess('')
-              }}
-              className={`flex-1 py-4 text-sm font-bold transition-all ${
-                mode === 'login'
-                  ? 'text-[#1A4095] border-b-2 border-[#1A4095] bg-blue-50/30'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              <Icon icon="lucide:log-in" className="w-4 h-4 inline mr-1.5" />
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode('register')
-                setError('')
-                setSuccess('')
-              }}
-              className={`flex-1 py-4 text-sm font-bold transition-all ${
-                mode === 'register'
-                  ? 'text-[#1A4095] border-b-2 border-[#1A4095] bg-blue-50/30'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              <Icon icon="lucide:user-plus" className="w-4 h-4 inline mr-1.5" />
-              Register
-            </button>
+        {/* 3D Split Card Container */}
+        <div className={`auth-split-card ${mode === 'register' ? 'show-signup' : 'show-signin'} flex flex-col md:flex-row min-h-[620px]`}>
+          
+          {/* 3D Sliding Overlay Panel (Desktop Only) */}
+          <div className="auth-overlay-panel hidden md:flex flex-col justify-between p-10 text-white shadow-2xl">
+            {/* Top Badge */}
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-white/15 backdrop-blur-md flex items-center justify-center">
+                <Icon icon={mode === 'register' ? 'lucide:sparkles' : 'lucide:shield-check'} className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-xs font-extrabold uppercase tracking-widest text-blue-100">
+                {mode === 'register' ? 'Digtech Academy' : 'Welcome Portal'}
+              </span>
+            </div>
+
+            {/* Central Content */}
+            <div className="my-auto text-center space-y-4 px-4">
+              {/* Avatar Icon */}
+              <div className="w-20 h-20 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center mx-auto shadow-inner">
+                <Icon icon={mode === 'register' ? 'lucide:user-check' : 'lucide:user-plus'} className="w-10 h-10 text-white" />
+              </div>
+
+              <div>
+                <span className="text-[11px] font-extrabold uppercase tracking-widest text-cyan-200">
+                  {mode === 'register' ? 'Good to see you' : 'New to Digtech?'}
+                </span>
+                <h3 className="text-2xl lg:text-3xl font-black mt-1" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                  {mode === 'register' ? 'Already have an account?' : 'Start Learning Today'}
+                </h3>
+              </div>
+
+              <p className="text-xs text-blue-100/90 max-w-xs mx-auto leading-relaxed">
+                {mode === 'register'
+                  ? 'Your courses and learning paths are right where you left them. Sign in and pick up the thread.'
+                  : 'Join thousands of students and expert tutors transforming the digital future in Africa.'}
+              </p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setError('')
+                  setSuccess('')
+                  setMode(mode === 'register' ? 'login' : 'register')
+                }}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 text-white text-xs font-bold tracking-wide transition-all hover:scale-105 active:scale-95 shadow-lg backdrop-blur-md cursor-pointer"
+              >
+                {mode === 'register' ? '← Back to Sign In' : 'Create an Account →'}
+              </button>
+            </div>
+
+            {/* Bottom Footer note */}
+            <div className="text-center text-[10px] text-blue-200/80 uppercase tracking-wider font-semibold">
+              Secure Access • Role Auto-Detection
+            </div>
           </div>
 
-          <div className="p-8">
-            {/* Error/Success Messages */}
+          {/* Left Form Panel: Sign In & Reset Password */}
+          <div className={`w-full md:w-1/2 p-6 sm:p-8 lg:p-10 flex flex-col justify-center transition-opacity duration-300 ${mode === 'register' ? 'md:pointer-events-none md:opacity-0' : 'opacity-100'}`}>
+            {/* Mobile Tab Toggle */}
+            <div className="md:hidden flex bg-gray-100 p-1 rounded-xl mb-6">
+              <button
+                type="button"
+                onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg ${mode === 'login' || mode === 'reset' ? 'bg-white text-[#1A4095] shadow-sm' : 'text-gray-500'}`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('register'); setError(''); setSuccess(''); }}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg ${mode === 'register' ? 'bg-white text-[#1A4095] shadow-sm' : 'text-gray-500'}`}
+              >
+                Register
+              </button>
+            </div>
+
+            {/* Error & Success Messages */}
             {error && (
               <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium flex items-center gap-2 animate-fade-in-down">
                 <Icon icon="lucide:alert-circle" className="w-4 h-4 flex-shrink-0" />
@@ -2429,26 +2465,30 @@ function LoginPage({
             )}
 
             {/* Login Form */}
-            {mode === 'login' && (
-              <div className="animate-fade-in-up">
-                <h2 className="text-xl font-extrabold text-gray-900 mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-                  Welcome Back
-                </h2>
-                <p className="text-xs text-gray-500 mb-6">Sign in to your portal (Student, Tutor, Admin, or Principal)</p>
-
-                {/* No role dropdown — role is auto-detected from Supabase */}
+            {mode !== 'reset' && (
+              <div className="space-y-5">
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#28C0F4]">Welcome Back</span>
+                  <h2 className="text-2xl font-black text-gray-900 mt-0.5" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                    Sign in to Portal
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-1">Student, Tutor, Admin, or Principal</p>
+                </div>
 
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Email</label>
-                    <input
-                      type="email"
-                      required
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="user@digtechacademy.ug"
-                      className="w-full border-2 border-[#28C0F4]/20 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
-                    />
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Email Address</label>
+                    <div className="relative">
+                      <input
+                        type="email"
+                        required
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        placeholder="you@digtechacademy.ug"
+                        className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 pl-10 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
+                      />
+                      <Icon icon="lucide:mail" className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    </div>
                   </div>
 
                   <div>
@@ -2460,26 +2500,27 @@ function LoginPage({
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         placeholder="••••••••••••"
-                        className="w-full border-2 border-[#28C0F4]/20 rounded-xl px-4 py-3 pr-12 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
+                        className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 pl-10 pr-12 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
                       />
+                      <Icon icon="lucide:lock" className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <button
                         type="button"
                         onClick={() => setShowLoginPassword(!showLoginPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#1A4095] transition-colors"
                       >
-                        <Icon icon={showLoginPassword ? "lucide:eye-off" : "lucide:eye"} className="w-5 h-5" />
+                        <Icon icon={showLoginPassword ? "lucide:eye-off" : "lucide:eye"} className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center justify-between text-xs pt-1">
                     <label className="flex items-center gap-2 text-gray-600 cursor-pointer">
-                      <input type="checkbox" className="rounded" />
+                      <input type="checkbox" className="rounded text-[#1A4095] focus:ring-[#28C0F4]" />
                       <span>Remember me</span>
                     </label>
                     <button
                       type="button"
-                      onClick={() => setMode('reset')}
+                      onClick={() => { setError(''); setSuccess(''); setMode('reset'); }}
                       className="font-bold text-[#1A4095] hover:underline"
                     >
                       Forgot Password?
@@ -2494,241 +2535,39 @@ function LoginPage({
                     Sign In to Portal →
                   </button>
                 </form>
-              </div>
-            )}
 
-            {/* Register Form */}
-            {mode === 'register' && (
-              <div className="animate-fade-in-up">
-                <h2 className="text-xl font-extrabold text-gray-900 mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-                  Create Account
-                </h2>
-                <p className="text-xs text-gray-500 mb-6">Join as a Student or Certified Tutor</p>
-
-                {/* Role Selector: Student & Tutor only */}
-                <div className="flex bg-gray-100 p-1 rounded-xl mb-5">
-                  <button
-                    type="button"
-                    onClick={() => setRegisterRole('student')}
-                    className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                      registerRole === 'student' ? 'bg-white text-[#1A4095] shadow-sm' : 'text-gray-500'
-                    }`}
-                  >
-                    <Icon icon="lucide:graduation-cap" className="w-4 h-4" /> Student
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRegisterRole('tutor')}
-                    className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                      registerRole === 'tutor' ? 'bg-white text-[#1A4095] shadow-sm' : 'text-gray-500'
-                    }`}
-                  >
-                    <Icon icon="lucide:user-check" className="w-4 h-4" /> Tutor
-                  </button>
-                </div>
-
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">First Name *</label>
-                      <input
-                        type="text"
-                        required
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="John"
-                        className="w-full border-2 border-[#28C0F4]/20 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Last Name *</label>
-                      <input
-                        type="text"
-                        required
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        placeholder="Doe"
-                        className="w-full border-2 border-[#28C0F4]/20 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Email Address *</label>
-                    <input
-                      type="email"
-                      required
-                      value={regEmail}
-                      onChange={(e) => setRegEmail(e.target.value)}
-                      placeholder="john.doe@example.com"
-                      className="w-full border-2 border-[#28C0F4]/20 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Phone Number *</label>
-                    <input
-                      type="tel"
-                      required
-                      value={regPhone}
-                      onChange={(e) => setRegPhone(e.target.value)}
-                      placeholder="0770123456"
-                      className="w-full border-2 border-[#28C0F4]/20 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
-                    />
-                  </div>
-
-                  {/* Tutor-Specific: Course Selection */}
-                  {registerRole === 'tutor' && (
-                    <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200">
-                      <label className="block text-xs font-bold text-gray-900 mb-2 uppercase tracking-wider flex items-center gap-2">
-                        <Icon icon="lucide:book-open" className="w-4 h-4 text-[#1A4095]" />
-                        Select Courses You Can Teach *
-                      </label>
-                      <p className="text-[11px] text-gray-600 mb-3">Choose one or more courses you are qualified to teach</p>
-                      <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {INITIAL_COURSES.map((course) => (
-                          <label
-                            key={course.id}
-                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white transition-colors cursor-pointer group"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={tutorCourses.includes(course.title)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setTutorCourses([...tutorCourses, course.title])
-                                } else {
-                                  setTutorCourses(tutorCourses.filter(c => c !== course.title))
-                                }
-                              }}
-                              className="w-4 h-4 text-[#1A4095] border-gray-300 rounded focus:ring-[#28C0F4] focus:ring-2"
-                            />
-                            <div className="flex-1">
-                              <div className="text-xs font-bold text-gray-900 group-hover:text-[#1A4095] transition-colors">
-                                {course.title}
-                              </div>
-                              <div className="text-[10px] text-gray-500">
-                                {course.category} • {course.level}
-                              </div>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                      {tutorCourses.length > 0 && (
-                        <div className="mt-3 p-2.5 bg-emerald-50 rounded-lg border border-emerald-200">
-                          <div className="text-[10px] font-bold text-emerald-700 uppercase mb-1">Selected ({tutorCourses.length})</div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {tutorCourses.map((course, idx) => (
-                              <span key={idx} className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-semibold">
-                                {course}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Password *</label>
-                    <div className="relative">
-                      <input
-                        type={showRegPassword ? "text" : "password"}
-                        required
-                        value={regPassword}
-                        onChange={(e) => setRegPassword(e.target.value)}
-                        placeholder="Min. 8 chars, uppercase, lowercase, numbers"
-                        className="w-full border-2 border-[#28C0F4]/20 rounded-xl px-4 py-2.5 pr-12 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowRegPassword(!showRegPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#1A4095] transition-colors"
-                      >
-                        <Icon icon={showRegPassword ? "lucide:eye-off" : "lucide:eye"} className="w-5 h-5" />
-                      </button>
-                    </div>
-                    {/* Password Strength Indicator */}
-                    {regPassword && (
-                      <div className="mt-2 space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full transition-all duration-300"
-                              style={{ 
-                                width: passwordStrength.strength === 'weak' ? '25%' : 
-                                       passwordStrength.strength === 'medium' ? '50%' : 
-                                       passwordStrength.strength === 'strong' ? '75%' : '100%',
-                                backgroundColor: passwordStrength.color
-                              }}
-                            />
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs font-bold" style={{ color: passwordStrength.color }}>
-                              {passwordStrength.label}
-                            </span>
-                            {(passwordStrength.strength === 'strong' || passwordStrength.strength === 'very-strong') && (
-                              <Icon icon="lucide:check-circle" className="w-4 h-4" style={{ color: passwordStrength.color }} />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Confirm Password *</label>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        required
-                        value={confirmPass}
-                        onChange={(e) => setConfirmPass(e.target.value)}
-                        placeholder="Re-enter your password"
-                        className="w-full border-2 border-[#28C0F4]/20 rounded-xl px-4 py-2.5 pr-12 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#1A4095] transition-colors"
-                      >
-                        <Icon icon={showConfirmPassword ? "lucide:eye-off" : "lucide:eye"} className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={!!success}
-                    className="w-full py-3.5 rounded-xl text-white font-bold text-sm shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-60 auth-button"
-                    style={{ background: 'linear-gradient(135deg, #1A4095 0%, #28C0F4 100%)' }}
-                  >
-                    Create {registerRole.charAt(0).toUpperCase() + registerRole.slice(1)} Account
-                  </button>
-
-                  <p className="text-[11px] text-gray-500 text-center">
-                    By registering, you agree to our Terms of Service and Privacy Policy
+                <div className="md:hidden pt-4 text-center">
+                  <p className="text-xs text-gray-500">
+                    Don't have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => { setMode('register'); setError(''); setSuccess(''); }}
+                      className="font-bold text-[#1A4095] hover:underline"
+                    >
+                      Create one
+                    </button>
                   </p>
-                </form>
+                </div>
               </div>
             )}
 
-            {/* Password Reset Form */}
+            {/* Password Reset View */}
             {mode === 'reset' && (
-              <div className="animate-fade-in-up">
-                <h2 className="text-xl font-extrabold text-gray-900 mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-                  Reset Password
-                </h2>
-                <p className="text-xs text-gray-500 mb-6">
-                  Enter your email and we'll send you a password reset link
-                </p>
+              <div className="space-y-5 animate-fade-in-up">
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#28C0F4]">Account Recovery</span>
+                  <h2 className="text-2xl font-black text-gray-900 mt-0.5" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                    Reset Password
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-1">Enter your email and we'll send you a recovery link</p>
+                </div>
 
                 {resetSent ? (
                   <div className="text-center py-6">
-                    <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-blue-100 text-[#1A4095] rounded-full flex items-center justify-center mx-auto mb-4">
                       <Icon icon="lucide:mail-check" className="w-8 h-8" />
                     </div>
-                    <p className="text-sm font-semibold text-gray-900 mb-2">Check Your Email</p>
+                    <p className="text-sm font-semibold text-gray-900 mb-1">Check Your Inbox</p>
                     <p className="text-xs text-gray-500">We've sent a password reset link to {resetEmail}</p>
                   </div>
                 ) : (
@@ -2741,7 +2580,7 @@ function LoginPage({
                         value={resetEmail}
                         onChange={(e) => setResetEmail(e.target.value)}
                         placeholder="user@digtechacademy.ug"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#1A4095] focus:ring-2 focus:ring-blue-100 transition-all"
+                        className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#1A4095] focus:ring-2 focus:ring-blue-100 transition-all"
                       />
                     </div>
 
@@ -2756,8 +2595,8 @@ function LoginPage({
 
                     <button
                       type="button"
-                      onClick={() => setMode('login')}
-                      className="w-full text-xs text-gray-600 hover:text-gray-900 font-semibold"
+                      onClick={() => { setError(''); setSuccess(''); setMode('login'); }}
+                      className="w-full text-xs text-gray-600 hover:text-gray-900 font-semibold pt-1"
                     >
                       ← Back to Sign In
                     </button>
@@ -2766,11 +2605,218 @@ function LoginPage({
               </div>
             )}
           </div>
+
+          {/* Right Form Panel: Registration (Students & Tutors) */}
+          <div className={`w-full md:w-1/2 p-6 sm:p-8 lg:p-10 flex flex-col justify-center transition-opacity duration-300 ${mode === 'login' || mode === 'reset' ? 'md:pointer-events-none md:opacity-0' : 'opacity-100'}`}>
+            <div className="space-y-4">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#28C0F4]">Start In Minutes</span>
+                <h2 className="text-2xl font-black text-gray-900 mt-0.5" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                  Create your account
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">Join Digtech Academy as a Student or Certified Tutor</p>
+              </div>
+
+              {/* Role Selector */}
+              <div className="flex bg-gray-100 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setRegisterRole('student')}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    registerRole === 'student' ? 'bg-white text-[#1A4095] shadow-sm' : 'text-gray-500'
+                  }`}
+                >
+                  <Icon icon="lucide:graduation-cap" className="w-4 h-4" /> Student
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRegisterRole('tutor')}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    registerRole === 'tutor' ? 'bg-white text-[#1A4095] shadow-sm' : 'text-gray-500'
+                  }`}
+                >
+                  <Icon icon="lucide:user-check" className="w-4 h-4" /> Tutor
+                </button>
+              </div>
+
+              <form onSubmit={handleRegister} className="space-y-3.5">
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1 uppercase tracking-wider">First Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="John"
+                      className="w-full border-2 border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1 uppercase tracking-wider">Last Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Doe"
+                      className="w-full border-2 border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1 uppercase tracking-wider">Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full border-2 border-gray-100 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1 uppercase tracking-wider">Phone Number *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={regPhone}
+                    onChange={(e) => setRegPhone(e.target.value)}
+                    placeholder="0770123456"
+                    className="w-full border-2 border-gray-100 rounded-xl px-3.5 py-2 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
+                  />
+                </div>
+
+                {/* Tutor-Specific: Course Selection */}
+                {registerRole === 'tutor' && (
+                  <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200">
+                    <label className="block text-[11px] font-bold text-gray-900 mb-1.5 uppercase tracking-wider flex items-center gap-1.5">
+                      <Icon icon="lucide:book-open" className="w-3.5 h-3.5 text-[#1A4095]" />
+                      Courses You Can Teach *
+                    </label>
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                      {INITIAL_COURSES.map((course) => (
+                        <label
+                          key={course.id}
+                          className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors cursor-pointer text-xs"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={tutorCourses.includes(course.title)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setTutorCourses([...tutorCourses, course.title])
+                              } else {
+                                setTutorCourses(tutorCourses.filter(c => c !== course.title))
+                              }
+                            }}
+                            className="w-3.5 h-3.5 text-[#1A4095] rounded"
+                          />
+                          <span className="font-semibold text-gray-800">{course.title}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1 uppercase tracking-wider">Password *</label>
+                    <div className="relative">
+                      <input
+                        type={showRegPassword ? "text" : "password"}
+                        required
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                        placeholder="Min 8 chars"
+                        className="w-full border-2 border-gray-100 rounded-xl px-3 py-2 pr-9 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowRegPassword(!showRegPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#1A4095]"
+                      >
+                        <Icon icon={showRegPassword ? "lucide:eye-off" : "lucide:eye"} className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1 uppercase tracking-wider">Confirm *</label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        required
+                        value={confirmPass}
+                        onChange={(e) => setConfirmPass(e.target.value)}
+                        placeholder="Confirm pass"
+                        className="w-full border-2 border-gray-100 rounded-xl px-3 py-2 pr-9 text-sm outline-none focus:border-[#28C0F4] focus:ring-2 focus:ring-[#28C0F4]/20 transition-all auth-input"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#1A4095]"
+                      >
+                        <Icon icon={showConfirmPassword ? "lucide:eye-off" : "lucide:eye"} className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Password Strength Indicator */}
+                {regPassword && (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full transition-all duration-300"
+                          style={{ 
+                            width: passwordStrength.strength === 'weak' ? '25%' : 
+                                   passwordStrength.strength === 'medium' ? '50%' : 
+                                   passwordStrength.strength === 'strong' ? '75%' : '100%',
+                            backgroundColor: passwordStrength.color
+                          }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold" style={{ color: passwordStrength.color }}>
+                        {passwordStrength.label}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={!!success}
+                  className="w-full py-3 rounded-xl text-white font-bold text-sm shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-60 auth-button"
+                  style={{ background: 'linear-gradient(135deg, #1A4095 0%, #28C0F4 100%)' }}
+                >
+                  Create {registerRole.charAt(0).toUpperCase() + registerRole.slice(1)} Account
+                </button>
+
+                <div className="md:hidden text-center pt-2">
+                  <p className="text-xs text-gray-500">
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+                      className="font-bold text-[#1A4095] hover:underline"
+                    >
+                      Sign In
+                    </button>
+                  </p>
+                </div>
+              </form>
+            </div>
+          </div>
+
         </div>
 
         {/* Footer Note */}
         <div className="text-center mt-6 text-xs text-gray-500">
-          <p>Note: Admin and Principal accounts can only be created by existing Principals</p>
+          <p>Note: Admin and Principal accounts are managed by the Academy Executive</p>
         </div>
       </div>
     </div>

@@ -652,3 +652,58 @@ iframe[src*="landbot"],
 [class*="LandbotLivechat"] > div {
   transition: opacity 0.3s ease !important;
 }
+
+/* ─── Smooth 3D Authentication Split-Card Animation (CodeCandy Style) ─────── */
+.auth-split-card {
+  perspective: 1500px;
+  overflow: hidden;
+  position: relative;
+  border-radius: 1.5rem;
+  background: #ffffff;
+  box-shadow: 0 25px 50px -12px rgba(26, 64, 149, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.auth-overlay-panel {
+  width: 50%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 20;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform;
+  background: linear-gradient(135deg, #1A4095 0%, #1e52b5 50%, #28C0F4 100%);
+}
+
+.auth-split-card.show-signup .auth-overlay-panel {
+  animation: turn-left 860ms linear forwards;
+}
+
+.auth-split-card.show-signin .auth-overlay-panel {
+  animation: turn-right 860ms linear forwards;
+}
+
+@keyframes turn-left {
+  0%   { transform: translate3d(0, 0, 0) rotateY(0); }
+  20%  { transform: translate3d(-10%, 0, 0) rotateY(-2.6deg); }
+  50%  { transform: translate3d(-50%, 0, 0) rotateY(-4.5deg); }
+  80%  { transform: translate3d(-90%, 0, 0) rotateY(-2.6deg); }
+  100% { transform: translate3d(-100%, 0, 0) rotateY(0); }
+}
+
+@keyframes turn-right {
+  0%   { transform: translate3d(-100%, 0, 0) rotateY(0); }
+  20%  { transform: translate3d(-90%, 0, 0) rotateY(2.6deg); }
+  50%  { transform: translate3d(-50%, 0, 0) rotateY(4.5deg); }
+  80%  { transform: translate3d(-10%, 0, 0) rotateY(2.6deg); }
+  100% { transform: translate3d(0, 0, 0) rotateY(0); }
+}
+
+.badge-candy {
+  background: linear-gradient(90deg, #28C0F4, #ffffff);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
