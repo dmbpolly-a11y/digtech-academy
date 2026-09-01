@@ -55,6 +55,12 @@ export const auth = {
     })
     return { data, error }
   },
+
+  // Update password (used after clicking reset link)
+  updatePassword: async (password: string) => {
+    const { data, error } = await supabase.auth.updateUser({ password })
+    return { data, error }
+  },
 }
 
 // Database helpers

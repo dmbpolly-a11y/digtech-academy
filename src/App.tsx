@@ -5,6 +5,9 @@ import { simulateCompletePaymentFlow, validatePaymentDetails, getMerchantAccount
 import { auth, db, logActivity, supabase } from './lib/supabase'
 import { CourseForm } from './components/CourseForm'
 import { EnrollmentForm } from './components/EnrollmentForm'
+import { AdminManagement } from './components/dashboard/AdminManagement'
+import { TutorManagement } from './components/dashboard/TutorManagement'
+import { StudentManagement } from './components/dashboard/StudentManagement'
 
 // ─── Link Tracking System ─────────────────────────────────────────────────────
 interface LinkUsageRecord {
@@ -97,6 +100,7 @@ type Frame =
   | 'faq'
   | 'login'
   | 'register'
+  | 'reset-password'
 
 interface SuccessStory {
   id: number
@@ -304,14 +308,6 @@ const INITIAL_ADMINS: AdminUser[] = [
     phone: '+256 770 613 201',
     role: 'Course Operations Admin',
     createdAt: '2024-01-15',
-  },
-  {
-    id: 2,
-    name: 'Sarah Mukasa',
-    email: 'sarah.admin@digtechacademy.ug',
-    phone: '+256 701 445 890',
-    role: 'Finance & Payments Admin',
-    createdAt: '2024-03-10',
   },
 ]
 
@@ -2468,7 +2464,7 @@ function LoginPage({
                     className="w-full py-3.5 rounded-xl text-white font-bold text-sm shadow-lg hover:scale-105 active:scale-95 transition-all auth-button"
                     style={{ background: 'linear-gradient(135deg, #1A4095 0%, #28C0F4 100%)' }}
                   >
-                    Sign In to {accountType.charAt(0).toUpperCase() + accountType.slice(1)} Portal →
+                    Sign In to Portal →
                   </button>
                 </form>
               </div>
@@ -2775,7 +2771,7 @@ function AdminDashboard({
   setTestimonials: React.Dispatch<React.SetStateAction<SuccessStory[]>>
   onLogout: () => void
 }) {
-  const [tab, setTab] = useState<'overview' | 'stories' | 'withdrawals' | 'profile'>('overview')
+  const [tab, setTab] = useState<'overview' | 'stories' | 'withdrawals' | 'profile' | 'admins' | 'tutors' | 'students'>('overview')
   
   // Profile & Photo Upload state for admin
   const [adminProfileImage, setAdminProfileImage] = useState('/images/liveclass3.png')
@@ -2890,6 +2886,9 @@ function AdminDashboard({
             { id: 'overview', label: 'System Overview', icon: 'lucide:layout-dashboard' },
             { id: 'stories', label: 'Success Stories', icon: 'lucide:star' },
             { id: 'withdrawals', label: 'PesaPal Payouts', icon: 'lucide:banknote' },
+            { id: 'admins', label: 'Admin Provisioning', icon: 'lucide:shield-alert' },
+            { id: 'tutors', label: 'Faculty & Tutors', icon: 'lucide:user-check' },
+            { id: 'students', label: 'Student Management', icon: 'lucide:graduation-cap' },
           ].map((item) => (
             <button
               key={item.id}
@@ -3034,7 +3033,7 @@ function PrincipalDashboard({
   admins: AdminUser[]
   setAdmins: React.Dispatch<React.SetStateAction<AdminUser[]>>
 }) {
-  const [tab, setTab] = useState<'admins' | 'tutors' | 'certs' | 'comments' | 'profile'>('admins')
+  const [tab, setTab] = useState<'admins' | 'tutors' | 'certs' | 'comments' | 'profile' | 'students'>('admins')
   const [comments, setComments] = useState<any[]>([])
   const [newComment, setNewComment] = useState('')
 
@@ -3187,6 +3186,7 @@ function PrincipalDashboard({
           {[
             { id: 'admins', label: 'Admin Accounts Provisioning', icon: 'lucide:shield-alert' },
             { id: 'tutors', label: 'Faculty & Tutors', icon: 'lucide:user-check' },
+            { id: 'students', label: 'Student Management', icon: 'lucide:graduation-cap' },
             { id: 'certs', label: 'Certificate Approvals', icon: 'lucide:award' },
             { id: 'profile', label: 'My Profile', icon: 'lucide:user' },
           ].map((item) => (
@@ -3205,71 +3205,9 @@ function PrincipalDashboard({
       </aside>
 
       <main className="flex-1 p-8">
-        {tab === 'admins' && (
-          <div className="space-y-6">
-            <h1 className="text-2xl font-extrabold text-gray-900" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-              Principal Admin Provisioning Portal
-            </h1>
-            <p className="text-xs text-gray-500">
-              Only the Principal (Super Admin) is authorized to create, configure, and deactivate Admin accounts.
-            </p>
-
-            {/* Create Admin Form */}
-            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-900 mb-4">Provision New Administrator</h3>
-              <form onSubmit={handleCreateAdmin} className="space-y-4">
-                <div className="grid md:grid-cols-3 gap-4">
-                  <input
-                    type="text"
-                    required
-                    value={adminName}
-                    onChange={(e) => setAdminName(e.target.value)}
-                    placeholder="Admin Full Name"
-                    className="border border-gray-200 rounded-xl px-4 py-2 text-xs outline-none focus:border-[#1A4095]"
-                  />
-                  <input
-                    type="email"
-                    required
-                    value={adminEmail}
-                    onChange={(e) => setAdminEmail(e.target.value)}
-                    placeholder="admin.name@digtechacademy.ug"
-                    className="border border-gray-200 rounded-xl px-4 py-2 text-xs outline-none focus:border-[#1A4095]"
-                  />
-                  <input
-                    type="tel"
-                    value={adminPhone}
-                    onChange={(e) => setAdminPhone(e.target.value)}
-                    placeholder="+256 700 000 000"
-                    className="border border-gray-200 rounded-xl px-4 py-2 text-xs outline-none focus:border-[#1A4095]"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-[#1A4095] text-white font-bold text-xs hover:opacity-90"
-                >
-                  Create Admin Account
-                </button>
-              </form>
-            </div>
-
-            {/* List of Admins */}
-            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-900 mb-4">Configured Administrators ({admins.length})</h3>
-              <div className="space-y-3">
-                {admins.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl">
-                    <div>
-                      <div className="text-xs font-bold text-gray-900">{a.name}</div>
-                      <div className="text-[11px] text-gray-500">{a.email} • {a.phone}</div>
-                      <Badge color="blue">{a.role}</Badge>
-                    </div>
-                    <span className="text-[11px] text-gray-400">Created: {a.createdAt}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        {tab === 'admins' && <AdminManagement />}
+        {tab === 'tutors' && <TutorManagement />}
+        {tab === 'students' && <StudentManagement />}
 
         {tab === 'comments' && (
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
@@ -3399,6 +3337,9 @@ function PrincipalDashboard({
             </div>
           </div>
         )}
+        {tab === 'admins' && <AdminManagement />}
+        {tab === 'tutors' && <TutorManagement />}
+        {tab === 'students' && <StudentManagement />}
       </main>
     </div>
   )
@@ -5916,6 +5857,140 @@ function ContactPage() {
   )
 }
 
+// ─── PASSWORD RESET PAGE (shown when user clicks reset link from email) ────────
+function ResetPasswordPage({ setFrame }: { setFrame: (f: Frame) => void }) {
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters long.')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { error: updateError } = await auth.updatePassword(newPassword)
+      if (updateError) {
+        setError(updateError.message || 'Failed to update password. The link may have expired.')
+      } else {
+        setSuccess('Password updated successfully! Redirecting to login...')
+        // Sign out and redirect to login after 2 seconds
+        setTimeout(async () => {
+          await auth.signOut()
+          sessionStorage.removeItem('digtech_user')
+          setFrame('login')
+        }, 2000)
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e6f0ff 100%)' }}>
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1A4095] to-[#28C0F4] flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Icon icon="lucide:key-round" className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-extrabold text-gray-900" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              Set New Password
+            </h1>
+            <p className="text-xs text-gray-500 mt-1">Enter your new password below to complete the reset.</p>
+          </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+              <Icon icon="lucide:alert-circle" className="w-4 h-4 text-red-500 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-xs text-green-700 flex items-center gap-2">
+              <Icon icon="lucide:check-circle" className="w-4 h-4 text-green-500 flex-shrink-0" />
+              {success}
+            </div>
+          )}
+
+          {!success && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">New Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password (min 8 characters)"
+                    required
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#1A4095] focus:ring-2 focus:ring-blue-100 pr-10"
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <Icon icon={showPassword ? 'lucide:eye-off' : 'lucide:eye'} className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Confirm Password</label>
+                <div className="relative">
+                  <input
+                    type={showConfirm ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password"
+                    required
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#1A4095] focus:ring-2 focus:ring-blue-100 pr-10"
+                  />
+                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <Icon icon={showConfirm ? 'lucide:eye-off' : 'lucide:eye'} className="w-4 h-4" />
+                  </button>
+                </div>
+                {confirmPassword && newPassword !== confirmPassword && (
+                  <p className="text-[11px] text-red-500 mt-1">Passwords do not match</p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3.5 rounded-xl text-white font-bold text-sm shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: 'linear-gradient(135deg, #1A4095 0%, #28C0F4 100%)' }}
+              >
+                {loading ? 'Updating Password...' : 'Update Password'}
+              </button>
+            </form>
+          )}
+
+          <div className="mt-6 text-center">
+            <button onClick={() => setFrame('login')} className="text-xs text-[#1A4095] font-bold hover:underline">
+              ← Back to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── MAIN APP COMPONENT ───────────────────────────────────────────────────────
 export default function App() {
   const [frame, setFrame] = useState<Frame>('home')
@@ -5980,9 +6055,28 @@ export default function App() {
     checkSession()
   }, [])
 
-  // Prevent authenticated users from going back to login/register or home
+  // Detect Supabase recovery token in URL (from password reset email link)
   useEffect(() => {
-    if (currentUser && ['login', 'register', 'home'].includes(frame)) {
+    const hash = window.location.hash
+    if (hash) {
+      const params = new URLSearchParams(hash.substring(1))
+      const type = params.get('type')
+      if (type === 'recovery') {
+        // User clicked a password reset link — show the reset form
+        setFrame('reset-password')
+        // Clean the URL hash so it doesn't re-trigger
+        window.history.replaceState(null, '', window.location.pathname)
+      }
+    }
+    // Also check for /reset-password path
+    if (window.location.pathname === '/reset-password') {
+      setFrame('reset-password')
+    }
+  }, [])
+
+  // Prevent authenticated users from going back to login/register or home (but allow reset-password)
+  useEffect(() => {
+    if (currentUser && ['login', 'register', 'home'].includes(frame) && frame !== 'reset-password') {
       if (currentUser.role === 'admin') setFrame('admin-dashboard')
       else if (currentUser.role === 'tutor') setFrame('tutor-dashboard')
       else if (currentUser.role === 'principal') setFrame('principal-dashboard')
@@ -6074,6 +6168,7 @@ export default function App() {
         {frame === 'faq' && <FaqPage />}
         {frame === 'login' && <LoginPage onLoginSuccess={handleLoginSuccess} setFrame={setFrame} />}
         {frame === 'register' && <RegisterPage onRegisterSuccess={handleLoginSuccess} setFrame={setFrame} />}
+        {frame === 'reset-password' && <ResetPasswordPage setFrame={setFrame} />}
         {frame === 'admin-dashboard' && (
           <AdminDashboard
             testimonials={testimonials}
